@@ -1,0 +1,308 @@
+{
+  "name": "AI-Driven Assignment Evaluation and Scoring System",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {
+          "download": true
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -672,
+        128
+      ],
+      "id": "8f4baa48-9ca1-4742-9ce5-5f4f133fe2d7",
+      "name": "Telegram Trigger",
+      "webhookId": "1faeac13-645e-4f98-a573-71927d433aea",
+      "credentials": {
+        "telegramApi": {
+          "id": "sVxUg23lq8gp0QGb",
+          "name": "Telegram account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "binaryPropertyName": "=data",
+        "outputPrefix": "data"
+      },
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        -496,
+        128
+      ],
+      "id": "b135b1af-93e0-4171-bd20-2c6fc5b6edf5",
+      "name": "Compression"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": " $binary ",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        -96
+      ],
+      "id": "d63aef77-3da8-4883-9668-61f1a58a2405",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -224,
+        128
+      ],
+      "id": "15de9d5a-fc44-4fc5-b585-cae0cbeccff2",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\"Evaluate the following assignment. Each question contains a question text and the student's answer. For every question:\n\nProvide the score out of 10\n\nNote: Please remove the backticks.\nWrite clear, specific feedback but in not include(`) this type of symbols.\n{{ $json.text }}\n\nPlease remove the backticks and generate.\n\nMaintain the exact output format below\n\nAfter evaluating all questions, calculate the total score and provide overall feedback based on correctness, logic, clarity, and code quality.\n\nnote:please concise the output  under based on the telegram required only  tokens.\n\nReturn the response strictly in this format:\n\nAssignment Evaluation Report\nStudent: Inno-students\nModule: <decide  the \"module name\" based on all the question>\n\nBe strict but fair. Do not change the format. \nplease give the feedback 3 words only.\n\nQ1. <Give the question>\nAnswer:<{{\"Answer_name\"}}> this answer must include 2 lines only \nScore: <score>/10\nFeedback: <feedback_text> this feedback should be in 3 words only\n\nQ2. <Give the question>\nAnswer: :<{{\"Answer_name\"}}> this answer must include 2 lines only\nScore: <score>/10\nFeedback: <feedback_text>  this feedback should be in 3 words only\n\n(continue for first 10 questions…)\nfeedback should be only 3 words\n\nTotal Score: <total_score>/100\nOverall Feedback: <overall_feedback> this feedback should be in 2 lines only \n\nNote : compress the answers Give the output in 3000 token only not more than 3000 tokens.\n\n\n ",
+        "options": {
+          "systemMessage": "\"You are an expert Python assignment evaluator. Your task is to score each question and provide clear, concise feedback. You must follow the exact output format given by the user. For every question, provide a score out of 10 and specific feedback. After all questions, calculate the total score and provide overall feedback.\n\nWarning:  Do not change the structure or Do not add any extra text outside the required format.\"\n\nnote: Don't include the backtick(`)"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        224,
+        0
+      ],
+      "id": "7b71854e-4995-402d-9280-fc0d4173ce3f",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        224,
+        160
+      ],
+      "id": "b95849e6-1b53-40b7-816e-546f22bdb5a5",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GojH6Eo6PGAPHApj",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "={{$binary.keys()[0]}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        32,
+        0
+      ],
+      "id": "22973b83-2b29-4ed0-a61d-73585ed05bec",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Loop Over Items').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false,
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        528,
+        16
+      ],
+      "id": "f33cba94-8cc3-4eed-a4bf-39fea4adc7ff",
+      "name": "Send a text message",
+      "webhookId": "2b855846-9b7d-476c-a89c-3107a048a993",
+      "credentials": {
+        "telegramApi": {
+          "id": "Bym4hvcHwyB5bOXL",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 6
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        544,
+        240
+      ],
+      "id": "a2b6cb5e-be7e-466b-96a3-8d4bb2a1a305",
+      "name": "Wait",
+      "webhookId": "4bcca95f-5d59-49b4-8c32-99621026c873"
+    },
+    {
+      "parameters": {
+        "content": "## AI-Driven Assignment Evaluation and Scoring System",
+        "height": 80,
+        "width": 672
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -144,
+        -112
+      ],
+      "typeVersion": 1,
+      "id": "4e442813-566f-4f81-8d8f-f250b633dd4b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "height": 624,
+        "width": 1504,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -688,
+        -128
+      ],
+      "typeVersion": 1,
+      "id": "bdaeadb1-35ac-4bb2-844b-f5e0d74ee444",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Compression",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compression": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a text message": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6225708e-e61a-4bf6-8005-b31d41fcceee",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "03ff1b29d61cc9410e253fe87a1df655a58a75c624081f830e7e204d9e0e18e6"
+  },
+  "id": "T1iCE1qRFHUjfKGV",
+  "tags": []
+}
